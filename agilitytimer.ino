@@ -21,6 +21,13 @@
 
   http://www.arduino.cc/en/Tutorial/Button
 */
+#include <EEPROM.h>
+
+ 
+
+#define MAX_NAME_LEN 30  // Maximum string length (including \0)
+
+#define EEP_NAME_PTR 920 // Start EEPROM address for string storage
 
 // constants won't change. They're used here to set pin numbers:
 const int lbPin1 = 2;     // the number of the pin of Light Barrier 1
@@ -32,7 +39,11 @@ int lbState1 = 0;         // variable for reading the pushbutton status
 int lbState2 = 0;         // variable for reading the pushbutton status
 int currentLbState1 = 0;         // variable for reading the pushbutton status
 int currentLbState2 = 0;
-String way;
+String way="HANS";
+String expected="WAY";
+String deviceName="OeSAZ";
+String savedDeviceName;
+
 
 void setup() {
   // initialize the LED pin as an output:
@@ -40,57 +51,97 @@ void setup() {
   // initialize the pushbutton pinas an input:
   pinMode(lbPin1, INPUT_PULLUP);
   pinMode(lbPin2, INPUT_PULLUP);
+  
   Serial.begin(9600);
+  savedDeviceName=ReadStringFromEEPROM();
+  if(!savedDeviceName.startsWith("OeSAZ")){
+    SaveStringToEEPROM();
+  }
+  
   
 }
 
+String ReadStringFromEEPROM()
+{
+  char message[MAX_NAME_LEN];
+  for (int pos = 0; pos < MAX_NAME_LEN - 1; pos++)
+  {
+    message[pos] = (char)EEPROM.read(EEP_NAME_PTR + pos);
+    if ((byte)message[pos] == 255)
+    {
+      message[pos] = '\0';
+      break; 
+    }
+  }
+  message[MAX_NAME_LEN - 1] = '\0';
+  return String(message);
+}
+
+void SaveStringToEEPROM()
+{
+    for (int pos=0; pos < deviceName.length(); pos++)
+    {
+      // The EEPROM memory has a specified life of 100,000 write/erase cycles,
+      // so you may need to be careful about how often you write to it.
+      EEPROM.write(EEP_NAME_PTR + pos, (byte)deviceName[pos]);
+    }
+
+}
+
 void loop() {
-
-  while(Serial.available()==0){
+  if(!way.startsWith(expected)){ //
     
-  }
-  Serial.readString();
-  if(way=="WAY"){
-    Serial.println("OeSAZ");
-    delay(100);
-  }
+    Serial.println("Waiting for init...");
+    while(Serial.available()==0){
+      
+    }
+    String wayser=Serial.readString();
+    Serial.println(wayser);
+    if(wayser.startsWith(expected)){
+      way=wayser;
+      Serial.println(deviceName);
+    }
+    delay(500);
+    
+  }else{
   // read the state of the pushbutton value:
-  lbState1 = digitalRead(lbPin1);
-  lbState2 = digitalRead(lbPin2);
-
-  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
-  if (lbState1 == HIGH) {
-    // turn LED on:
-    if(lbState1!=currentLbState1){
-      digitalWrite(ledPin, HIGH);
-      Serial.println("LB1-ON");
-      currentLbState1 = HIGH;
-      delay(100);
+    lbState1 = digitalRead(lbPin1);
+    lbState2 = digitalRead(lbPin2);
+  
+    // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+    if (lbState1 == HIGH) {
+      // turn LED on:
+      if(lbState1!=currentLbState1){
+        digitalWrite(ledPin, HIGH);
+        Serial.println("LB1-ON");
+        currentLbState1 = HIGH;
+        delay(100);
+      }
+    } else {
+      // turn LED off:
+      if(lbState1!=currentLbState1){
+        digitalWrite(ledPin, LOW);
+        Serial.println("LB1-OFF");
+        currentLbState1 = LOW;
+        delay(100);
+      }
     }
-  } else {
-    // turn LED off:
-    if(lbState1!=currentLbState1){
-      digitalWrite(ledPin, LOW);
-      Serial.println("LB1-OFF");
-      currentLbState1 = LOW;
-      delay(100);
-    }
-  }
-  if (lbState2 == HIGH) {
-    // turn LED on:
-    if(lbState2!=currentLbState2){
-      digitalWrite(ledPin, HIGH);
-      Serial.println("LB2-ON");
-      currentLbState2 = HIGH;
-      delay(100);
-    }
-  } else {
-    // turn LED off:
-    if(lbState2!=currentLbState2){
-      digitalWrite(ledPin, LOW);
-      Serial.println("LB2-OFF");
-      currentLbState2 = LOW;
-      delay(100);
+    if (lbState2 == HIGH) {
+      // turn LED on:
+      if(lbState2!=currentLbState2){
+        digitalWrite(ledPin, HIGH);
+        Serial.println("LB2-ON");
+        currentLbState2 = HIGH;
+        delay(100);
+      }
+    } else {
+      // turn LED off:
+      if(lbState2!=currentLbState2){
+        digitalWrite(ledPin, LOW);
+        Serial.println("LB2-OFF");
+        currentLbState2 = LOW;
+        delay(100);
+      }
     }
   }
 }
