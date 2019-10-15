@@ -37,77 +37,84 @@ const int ledPin =  13;      // the number of the LED pin
 // variables will change:
 int lbState1 = 0;         // variable for reading the pushbutton status
 int lbState2 = 0;         // variable for reading the pushbutton status
+int reset = 0;
 int currentLbState1 = 0;         // variable for reading the pushbutton status
 int currentLbState2 = 0;
-String way="HANS";
+String way="H";
 String expected="WAY";
 String deviceName="OeSAZ";
-String savedDeviceName;
+bool initialized=0;
 
 
 void setup() {
   // initialize the LED pin as an output:
   pinMode(ledPin, OUTPUT);
-  // initialize the pushbutton pinas an input:
+  // initialize the pushbutton pin as an input:
   pinMode(lbPin1, INPUT_PULLUP);
   pinMode(lbPin2, INPUT_PULLUP);
   
   Serial.begin(9600);
-  savedDeviceName=ReadStringFromEEPROM();
-  if(!savedDeviceName.startsWith("OeSAZ")){
-    SaveStringToEEPROM();
-  }
-  
+  Serial.println("start program");
+  timerinit();
+  Serial.flush();
   
 }
+//
+//String ReadStringFromEEPROM()
+//{
+//  char message[MAX_NAME_LEN];
+//  for (int pos = 0; pos < MAX_NAME_LEN - 1; pos++)
+//  {
+//    message[pos] = (char)EEPROM.read(EEP_NAME_PTR + pos);
+//    if ((byte)message[pos] == 255)
+//    {
+//      message[pos] = '\0';
+//      break; 
+//    }
+//  }
+//  message[MAX_NAME_LEN - 1] = '\0';
+//  return String(message);
+//}
+//
+//void SaveStringToEEPROM()
+//{
+//    for (int pos=0; pos < deviceName.length(); pos++)
+//    {
+//      // The EEPROM memory has a specified life of 100,000 write/erase cycles,
+//      // so you may need to be careful about how often you write to it.
+//      EEPROM.write(EEP_NAME_PTR + pos, (byte)deviceName[pos]);
+//    }
+//
+//}
 
-String ReadStringFromEEPROM()
-{
-  char message[MAX_NAME_LEN];
-  for (int pos = 0; pos < MAX_NAME_LEN - 1; pos++)
-  {
-    message[pos] = (char)EEPROM.read(EEP_NAME_PTR + pos);
-    if ((byte)message[pos] == 255)
-    {
-      message[pos] = '\0';
-      break; 
+void timerinit(){
+   while(initialized==0){
+      String wayser = read();
+      if(wayser.startsWith(expected)){
+        way=wayser;        
+        Serial.println(deviceName);
+        Serial.flush();
+        initialized=1;
+      }
+      delay(100);
     }
-  }
-  message[MAX_NAME_LEN - 1] = '\0';
-  return String(message);
-}
-
-void SaveStringToEEPROM()
-{
-    for (int pos=0; pos < deviceName.length(); pos++)
-    {
-      // The EEPROM memory has a specified life of 100,000 write/erase cycles,
-      // so you may need to be careful about how often you write to it.
-      EEPROM.write(EEP_NAME_PTR + pos, (byte)deviceName[pos]);
-    }
-
+    
+    
 }
 
 void loop() {
-  if(!way.startsWith(expected)){ //
-    
-    Serial.println("Waiting for init...");
-    while(Serial.available()==0){
-      
+  
+    if(initialized!=1) {
+      Serial.println("aaaaah");
+      Serial.flush();
     }
-    String wayser=Serial.readString();
-    Serial.println(wayser);
-    if(wayser.startsWith(expected)){
-      way=wayser;
-      Serial.println(deviceName);
-    }
-    delay(500);
+   
+   
     
-  }else{
   // read the state of the pushbutton value:
     lbState1 = digitalRead(lbPin1);
     lbState2 = digitalRead(lbPin2);
-  
+    
     // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
     if (lbState1 == HIGH) {
       // turn LED on:
@@ -116,6 +123,7 @@ void loop() {
         Serial.println("LB1-ON");
         currentLbState1 = HIGH;
         delay(100);
+        initialized=1;
       }
     } else {
       // turn LED off:
@@ -124,6 +132,7 @@ void loop() {
         Serial.println("LB1-OFF");
         currentLbState1 = LOW;
         delay(100);
+        initialized=1;
       }
     }
     if (lbState2 == HIGH) {
@@ -133,6 +142,7 @@ void loop() {
         Serial.println("LB2-ON");
         currentLbState2 = HIGH;
         delay(100);
+        initialized=1;
       }
     } else {
       // turn LED off:
@@ -141,7 +151,20 @@ void loop() {
         Serial.println("LB2-OFF");
         currentLbState2 = LOW;
         delay(100);
+        initialized=1;
       }
     }
+
+}
+
+String read() {
+  while(!Serial.available());
+      
+  String str="";
+  while (Serial.available()){
+    str+=(char)Serial.read();
+    delay(1);
   }
+  return str;
+  
 }
